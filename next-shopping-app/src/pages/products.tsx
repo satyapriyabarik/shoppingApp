@@ -1,5 +1,6 @@
 import MainLayout from "@/components/layouts";
 import { getProducts } from "@/lib/api";
+import Image from "next/image";
 type Product = {
     id: number;
     name: string;
@@ -32,7 +33,7 @@ export default function ProductsPage({ products }: { products: Product[] }) {
                             <div key={p.id} className="col-md-4 mb-3">
                                 <div className="card h-100 shadow-sm">
                                     <div className="card-body">
-                                        <img
+                                        <Image
                                             src={p.image}
                                             alt={p.name}
                                             className="card-img-top mb-3"
