@@ -1,0 +1,19 @@
+.nav-link {
+    color: white !important;
+    transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+    color: rgb(4, 216, 4) !important;
+}
+
+.navbar {
+    transition: background-color 0.3s ease;
+}
+
+.active {
+    font-weight: bold;
+    color: rgb(77, 247, 77) !important;
+    text-decoration: underline;
+}

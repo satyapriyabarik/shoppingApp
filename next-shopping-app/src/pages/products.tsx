@@ -1,59 +1,62 @@
+import { Suspense } from "react";
+import {
+    QueryClient,
+    dehydrate,
+    HydrationBoundary,
+    DehydratedState,
+} from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import MainLayout from "@/components/layouts";
+import BackToTop from "@/components/backToTop/BackToTop";
 import { getProducts } from "@/lib/api";
-import Image from "next/image";
-type Product = {
-    id: number;
-    name: string;
-    price: string;
-    category: string;
-    image: string;
-    description: string;
-};
+import { Product } from "@/types/Product";
+
+// Dynamic import to avoid SSR issues with window/scroll
+const ProductsPageContent = dynamic(
+    () => import("@/components/productContent/ProductsPageContent"),
+    { ssr: false }
+);
 
 export async function getServerSideProps() {
-    try {
-        const products = await getProducts();
-        // Ensure products is an array; fallback to empty array if undefined or null
-        console.log("Fetched products:", products);
-        return { props: { products: Array.isArray(products) ? products : [] } };
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        return { props: { products: [] } };
-    }
+    const queryClient = new QueryClient();
+
+    // Pre-fetch first page of products
+    await queryClient.prefetchInfiniteQuery({
+        queryKey: ["products"],
+        queryFn: ({ pageParam = 1 }) => getProducts(pageParam, 6),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage: Product[], allPages: Product[]) =>
+            lastPage.length === 6 ? allPages.length + 1 : undefined,
+    });
+
+    return {
+        props: {
+            dehydratedState: dehydrate(queryClient),
+        },
+    };
 }
 
-export default function ProductsPage({ products }: { products: Product[] }) {
+export default function ProductsPage({
+    dehydratedState,
+}: {
+    dehydratedState: DehydratedState;
+}) {
     return (
-        <MainLayout title="Products">
-            <div className="container mt-4">
-                <h2 className="mb-4">Products (SSR)</h2>
-                {products.length > 0 ? (
-                    <div className="row">
-                        {products.map((p) => (
-                            <div key={p.id} className="col-md-4 mb-3">
-                                <div className="card h-100 shadow-sm">
-                                    <div className="card-body">
-                                        <Image
-                                            src={p.image}
-                                            alt={p.name}
-                                            className="card-img-top mb-3"
-                                            style={{ height: '200px', objectFit: 'cover' }}
-                                        />
-                                        <h5 className="card-title">{p.name}</h5>
-                                        <p className="card-text text-muted">{p.category}</p>
-                                        <p className="card-text text-muted">{p.description}</p>
-
-                                        <p className="card-text font-weight-bold">${p.price}</p>
-                                    </div>
-                                    <button className="btn btn-primary m-3 w-90">Add to Cart</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-secondary">No products found.</p>
-                )}
-            </div>
-        </MainLayout>
+        <HydrationBoundary state={dehydratedState}>
+            <MainLayout title="Products">
+                <Suspense
+                    fallback={
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-success" role="status" />
+                            <p className="mt-2">Loading products...</p>
+                        </div>
+                    }
+                >
+                    <ProductsPageContent />
+                </Suspense>
+            </MainLayout>
+            <BackToTop />
+        </HydrationBoundary>
     );
 }
+

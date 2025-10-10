@@ -3,6 +3,7 @@
   --foreground: #171717;
 }
 
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -33,6 +34,94 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+.hover-zoom {
+  transition: transform 0.25s ease-in-out;
+}
+
+.hover-zoom:hover {
+  transform: scale(1.03);
+}
+
+.banner-carousel .carousel-caption.top-caption {
+  top: 10%;
+  bottom: auto;
+  transform: translateY(0);
+  text-align: center;
+}
+
+.banner-carousel .carousel-caption h3,
+.banner-carousel .carousel-caption p {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.banner-carousel .carousel-item img {
+  filter: brightness(85%);
+}
+
+/* 🌿 Faded green-white background for product details */
+.product-details-bg {
+  background: linear-gradient(180deg, #f0fff4 0%, #ffffff 100%);
+}
+
+/* 🪴 Smooth card and layout styling */
+.product-details-bg h2 {
+  color: #1b4332;
+}
+
+.product-details-bg .btn {
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.product-details-bg hr {
+  border-top: 1px solid #cfe3d8;
+}
+
+/* Force 5 columns per row on xl screens */
+@media (min-width: 1200px) {
+  .product-col {
+    flex: 0 0 20%;
+    max-width: 20%;
+  }
+}
+
+@keyframes faded {
+  0% {
+    background: linear-gradient(180deg, #048426 10%, #ffffff 100%);
+  }
+
+  10% {
+    background: linear-gradient(180deg, #048423 20%, #ffffff 100%);
+  }
+
+  50% {
+    background: linear-gradient(200deg, #048420 30%, #ffffff 100%);
+  }
+
+  90% {
+    background: linear-gradient(220deg, #048418 40%, #ffffff 100%);
+  }
+
+  100% {
+    background: linear-gradient(240deg, #048412 50%, #ffffff 100%);
+  }
+}
+
+.featured-bg .card {
+  background: linear-gradient(180deg, #6edf8c 60%, #ffffff 100%);
+  animation: faded 8s ease-in-out infinite alternate;
+}
+
+/* Make cards slightly bigger */
+.product-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 @media (prefers-color-scheme: dark) {
