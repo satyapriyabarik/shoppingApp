@@ -1,3 +1,4 @@
+
 // import { Suspense } from "react";
 // import {
 //     QueryClient,
@@ -6,44 +7,59 @@
 //     DehydratedState,
 // } from "@tanstack/react-query";
 // import dynamic from "next/dynamic";
+// import { useRouter } from "next/router";
 // import MainLayout from "@/components/layouts";
 // import BackToTop from "@/components/backToTop/BackToTop";
-// import { getProducts } from "@/lib/api";
+// import { getProducts, getProductsByCategory } from "@/lib/api";
 // import { Product } from "@/types/Product";
 
-// // Dynamic import to avoid SSR issues with window/scroll
+// // Dynamic import for client-only rendering
 // const ProductsPageContent = dynamic(
 //     () => import("@/components/productContent/ProductsPageContent"),
 //     { ssr: false }
 // );
 
-// export async function getServerSideProps() {
+// export async function getServerSideProps(context: { query: { category?: string } }) {
 //     const queryClient = new QueryClient();
+//     const category = context.query.category;
 
-//     // Pre-fetch first page of products
-//     await queryClient.prefetchInfiniteQuery({
-//         queryKey: ["products"],
-//         queryFn: ({ pageParam = 1 }) => getProducts(pageParam, 6),
-//         initialPageParam: 1,
-//         getNextPageParam: (lastPage: Product[], allPages: Product[]) =>
-//             lastPage.length === 6 ? allPages.length + 1 : undefined,
-//     });
+//     if (category) {
+//         // Prefetch products filtered by category
+//         await queryClient.prefetchQuery({
+//             queryKey: ["products", category],
+//             queryFn: () => getProductsByCategory(category),
+//         });
+//     } else {
+//         // Prefetch first page of all products
+//         await queryClient.prefetchInfiniteQuery({
+//             queryKey: ["products"],
+//             queryFn: ({ pageParam = 1 }) => getProducts(pageParam, 6),
+//             initialPageParam: 1,
+//             getNextPageParam: (lastPage: Product[], allPages: Product[]) =>
+//                 lastPage.length === 6 ? allPages.length + 1 : undefined,
+//         });
+//     }
 
 //     return {
 //         props: {
 //             dehydratedState: dehydrate(queryClient),
+//             category: category || null,
 //         },
 //     };
 // }
 
 // export default function ProductsPage({
 //     dehydratedState,
+//     category,
 // }: {
 //     dehydratedState: DehydratedState;
+//     category: string | null;
 // }) {
+//     const router = useRouter();
+
 //     return (
 //         <HydrationBoundary state={dehydratedState}>
-//             <MainLayout title="Products">
+//             <MainLayout title={category ? `${category} Products` : "Products"}>
 //                 <Suspense
 //                     fallback={
 //                         <div className="text-center py-5">
@@ -52,13 +68,14 @@
 //                         </div>
 //                     }
 //                 >
-//                     <ProductsPageContent />
+//                     <ProductsPageContent category={router.query.category as string | undefined} />
 //                 </Suspense>
 //             </MainLayout>
 //             <BackToTop />
 //         </HydrationBoundary>
 //     );
 // }
+
 
 import { Suspense } from "react";
 import {
@@ -68,33 +85,53 @@ import {
     DehydratedState,
 } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
 import MainLayout from "@/components/layouts";
 import BackToTop from "@/components/backToTop/BackToTop";
 import { getProducts, getProductsByCategory } from "@/lib/api";
 import { Product } from "@/types/Product";
 
-// Dynamic import for client-only rendering
 const ProductsPageContent = dynamic(
     () => import("@/components/productContent/ProductsPageContent"),
     { ssr: false }
 );
 
-export async function getServerSideProps(context: { query: { category?: string } }) {
-    const queryClient = new QueryClient();
-    const category = context.query.category;
+interface ProductsPageProps {
+    dehydratedState: DehydratedState;
+    category?: string; // 👈 now uses optional instead of null
+    search?: string;
+    sort?: string;
+}
 
-    if (category) {
-        // Prefetch products filtered by category
+export async function getServerSideProps(context: {
+    query: { category?: string; search?: string; sort?: string };
+}) {
+    const queryClient = new QueryClient();
+    const { category, search, sort } = context.query;
+
+    // ✅ Replace undefined → null before sending to client (for Next.js serialization)
+    const safeCategory = category ?? null;
+    const safeSearch = search ?? null;
+    const safeSort = sort ?? null;
+
+    if (safeCategory) {
         await queryClient.prefetchQuery({
-            queryKey: ["products", category],
-            queryFn: () => getProductsByCategory(category),
+            queryKey: ["products", { category: safeCategory, search: safeSearch, sort: safeSort }],
+            queryFn: () =>
+                getProductsByCategory(safeCategory, {
+                    search: safeSearch ?? undefined,
+                    sort: safeSort ?? undefined,
+                }),
         });
     } else {
-        // Prefetch first page of all products
         await queryClient.prefetchInfiniteQuery({
-            queryKey: ["products"],
-            queryFn: ({ pageParam = 1 }) => getProducts(pageParam, 6),
+            queryKey: ["products", { category: "all", search: safeSearch, sort: safeSort }],
+            queryFn: ({ pageParam = 1 }) =>
+                getProducts({
+                    page: pageParam,
+                    limit: 6,
+                    search: safeSearch ?? undefined,
+                    sort: safeSort ?? undefined,
+                }),
             initialPageParam: 1,
             getNextPageParam: (lastPage: Product[], allPages: Product[]) =>
                 lastPage.length === 6 ? allPages.length + 1 : undefined,
@@ -104,7 +141,10 @@ export async function getServerSideProps(context: { query: { category?: string }
     return {
         props: {
             dehydratedState: dehydrate(queryClient),
-            category: category || null,
+            // ✅ still serializable
+            category: safeCategory,
+            search: safeSearch,
+            sort: safeSort,
         },
     };
 }
@@ -112,15 +152,17 @@ export async function getServerSideProps(context: { query: { category?: string }
 export default function ProductsPage({
     dehydratedState,
     category,
-}: {
-    dehydratedState: DehydratedState;
-    category: string | null;
-}) {
-    const router = useRouter();
+    search,
+    sort,
+}: ProductsPageProps) {
+    // ✅ convert back null → undefined before passing to components
+    const normalizedCategory = category ?? undefined;
+    const normalizedSearch = search ?? undefined;
+    const normalizedSort = sort ?? undefined;
 
     return (
         <HydrationBoundary state={dehydratedState}>
-            <MainLayout title={category ? `${category} Products` : "Products"}>
+            <MainLayout title={normalizedCategory ? `${normalizedCategory} Products` : "Products"}>
                 <Suspense
                     fallback={
                         <div className="text-center py-5">
@@ -129,7 +171,11 @@ export default function ProductsPage({
                         </div>
                     }
                 >
-                    <ProductsPageContent category={router.query.category as string | undefined} />
+                    <ProductsPageContent
+                        category={normalizedCategory}
+                        search={normalizedSearch}
+                        sort={normalizedSort}
+                    />
                 </Suspense>
             </MainLayout>
             <BackToTop />

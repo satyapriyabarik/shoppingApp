@@ -13,6 +13,7 @@ export default function BannerCarousel() {
                     width={1600}
                     height={400}
                     style={{ objectFit: "cover" }}
+                    priority
                 />
                 <Carousel.Caption className="middle-caption">
                     <motion.div
@@ -34,6 +35,7 @@ export default function BannerCarousel() {
                     width={1600}
                     height={400}
                     style={{ objectFit: "cover" }}
+                    priority
                 />
                 <Carousel.Caption className="middle-caption">
                     <motion.div
