@@ -5,4 +5,11 @@ export interface Product {
     price: number;
     image: string;
     description: string;
+    care: string;
+    reviews: [{
+        userName: string;
+        title: string;
+        comment: string;
+        rating: number;
+    }];
 }

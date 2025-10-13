@@ -82,6 +82,7 @@ export default function SearchBox({ onSearch }: SearchBoxProps) {
                         <option>All</option>
                         <option>Flower</option>
                         <option>Succulent</option>
+                        <option>Herb</option>
                     </Form.Select>
 
                     <Form.Control

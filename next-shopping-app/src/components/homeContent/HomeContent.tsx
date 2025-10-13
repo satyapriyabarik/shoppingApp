@@ -28,8 +28,8 @@ const PAGE_SIZE = 6;
 // 🔹 Fetch paginated products
 async function fetchProducts({ pageParam = 1 }): Promise<Product[]> {
     const res = await fetch(
-        `https://my-json-server.typicode.com/satyapriyabarik/nurseryData/initialPlants?_page=${pageParam}&_limit=${PAGE_SIZE}`
-    );
+        `https://my-json-server.typicode.com/satyapriyabarik/nurseryData/initialPlants?_page=${pageParam}&_limit=${PAGE_SIZE}`);
+
     if (!res.ok) throw new Error("Failed to fetch products");
     return res.json();
 }

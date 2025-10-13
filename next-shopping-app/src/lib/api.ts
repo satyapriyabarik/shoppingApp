@@ -1,3 +1,4 @@
+import { Product } from "@/types/Product";
 export async function getProducts(page = 1, limit = 6) {
     try {
         const res = await fetch(
@@ -31,4 +32,11 @@ export async function getProductById(id: string | number) {
         console.error(error);
         return null;
     }
+}
+
+
+export async function getProductsByCategory(category: string): Promise<Product[]> {
+    const res = await fetch(`https://my-json-server.typicode.com/satyapriyabarik/nurseryData/initialPlants/?category=${encodeURIComponent(category)}`);
+    if (!res.ok) throw new Error("Failed to fetch products by category");
+    return res.json();
 }

@@ -1,28 +1,25 @@
 import { useRouter } from "next/router";
-import { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layouts";
 import Image from "next/image";
 import { Spinner, Container, Row, Col, Badge } from "react-bootstrap";
 import AddToCartButton from "@/components/cart/AddToCartButton";
 import { Product } from "@/types/Product";
 import { getProductById } from "@/lib/api";
+import ProductBrief from "@/components/productBrief/ProductBrief";
 
 interface ProductDetailProps {
-    initialProduct?: Product | null; // from SSR
+    initialProduct?: Product | null;
 }
+
 
 export default function ProductDetail({ initialProduct }: ProductDetailProps) {
     const router = useRouter();
     const { id } = router.query;
-
     const [product, setProduct] = useState<Product | null>(initialProduct ?? null);
 
-    // ✅ Client-side fetch if not loaded via SSR
     useEffect(() => {
-        // 1️⃣ Wait until router is ready and id exists
         if (!router.isReady || !id) return;
-
-        // 2️⃣ Handle string | string[] case safely
         const numericId = Array.isArray(id) ? id[0] : id;
 
         async function fetchProduct() {
@@ -31,7 +28,7 @@ export default function ProductDetail({ initialProduct }: ProductDetailProps) {
         }
 
         fetchProduct();
-    }, [router.isReady, id]); // 🔑 watch router.isReady
+    }, [router.isReady, id]);
 
     if (!product)
         return (
@@ -53,8 +50,8 @@ export default function ProductDetail({ initialProduct }: ProductDetailProps) {
                             <Image
                                 src={product.image || "https://via.placeholder.com/500x500.png?text=Plant"}
                                 alt={product.name}
-                                width={450}
-                                height={450}
+                                width={350}
+                                height={350}
                                 unoptimized
                                 style={{
                                     objectFit: "cover",
@@ -80,17 +77,8 @@ export default function ProductDetail({ initialProduct }: ProductDetailProps) {
 
                             <hr className="my-4" />
 
-                            {/* Lazy-load ProductBrief (e.g., care instructions) */}
-                            <Suspense
-                                fallback={
-                                    <div className="text-center py-3">
-                                        <Spinner animation="border" role="status" />
-                                        <span className="ms-2 text-muted">Loading details...</span>
-                                    </div>
-                                }
-                            >
-                                {/* <ProductBrief product={product} /> */}
-                            </Suspense>
+                            {/* ✅ No Suspense — dynamic() handles fallback */}
+                            <ProductBrief product={product} />
                         </Col>
                     </Row>
                 </Container>
@@ -99,16 +87,10 @@ export default function ProductDetail({ initialProduct }: ProductDetailProps) {
     );
 }
 
-// ✅ SSR for direct URL visits
 export async function getServerSideProps(context: { params: { id: string } }) {
     const { id } = context.params;
     const product = await getProductById(id);
+    if (!product) return { notFound: true };
 
-    if (!product) {
-        return { notFound: true };
-    }
-
-    return {
-        props: { initialProduct: product },
-    };
+    return { props: { initialProduct: product } };
 }
